@@ -5,7 +5,7 @@ from elevenlabs.client import ElevenLabs
 app = Flask(__name__)
 
 # 🔹 CONFIGURA TUS CLAVES API 🔹
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "sk-mVAGLg1Hx6hX_qOt2N1pqvvEQs5p1eWIUb8DkQd_a1T3BlbkFJ8Q1uraVSJD88Y4-qdxvL3IXl4pYu7l8cgU24bc7WMA"
 ELEVENLABS_API_KEY = "sk_0388b0594628d734ecccfbae85168b3082e444884fd41403"
 GPT_MODEL = "gpt-3.5-turbo"
 VOICE_ID = "sd1ju7WLrhatskFTLPsP"
