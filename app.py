@@ -9,9 +9,9 @@ CORS(app)  # Habilita CORS para aceptar solicitudes de otros dominios
 
 # 🔹 CONFIGURA TUS CLAVES API 🔹
 OPENAI_API_KEY = "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"
-ELEVENLABS_API_KEY = "sk_bc803b5a579b0d4833785734c01239360371f3001831d165"
+ELEVENLABS_API_KEY = "sk_bc783d4d3760d29a03b68cbb4337b51426bda252f3a89fd2"
 GPT_MODEL = "gpt-3.5-turbo"
-VOICE_ID = "sd1ju7WLrhatskFTLPsP"
+VOICE_ID = "MlvaOZdX5RhuFeF0WNFz"
 
 # 🔹 Configurar las APIs
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
