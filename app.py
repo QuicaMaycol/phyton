@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)  # Habilita CORS para aceptar solicitudes de otros dominios
 
 # 🔹 CONFIGURA TUS CLAVES API 🔹
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 ELEVENLABS_API_KEY = "sk_bc783d4d3760d29a03b68cbb4337b51426bda252f3a89fd2"
 GPT_MODEL = "gpt-3.5-turbo"
 VOICE_ID = "MlvaOZdX5RhuFeF0WNFz"
