@@ -1,8 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS  # Importar CORS
 import openai
 from elevenlabs.client import ElevenLabs
+import os
 
 app = Flask(__name__)
+CORS(app)  # Habilita CORS para aceptar solicitudes de otros dominios
 
 # 🔹 CONFIGURA TUS CLAVES API 🔹
 OPENAI_API_KEY = "sk-mVAGLg1Hx6hX_qOt2N1pqvvEQs5p1eWIUb8DkQd_a1T3BlbkFJ8Q1uraVSJD88Y4-qdxvL3IXl4pYu7l8cgU24bc7WMA"
