@@ -35,11 +35,18 @@ def generar_audio():
     ).choices[0].message.content
 
     # Generar URL de audio en ElevenLabs
-    audio_url = client_elevenlabs.text_to_speech.stream(
-        text=respuesta_ia, voice_id=VOICE_ID
-    )
+ audio = client_elevenlabs.text_to_speech.convert(
+    text=respuesta_ia, voice_id=VOICE_ID
+)
 
-    return jsonify({"respuesta": respuesta_ia, "audio_url": audio_url})
+# Guardar el archivo de audio en el servidor y devolver la URL
+audio_file = "output_audio.mp3"
+with open(audio_file, "wb") as f:
+    for chunk in audio:
+        f.write(chunk)
+
+# Devolver una URL del audio (si tienes hosting de archivos, puedes usarlo)
+return jsonify({"respuesta": respuesta_ia, "audio_file": audio_file})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
