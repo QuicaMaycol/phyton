@@ -21,12 +21,12 @@ def home():
 @app.route("/generar_audio", methods=["POST"])
 def generar_audio():
     """Genera una respuesta con OpenAI y un audio con ElevenLabs"""
-    data = request.json  # Recibir datos JSON desde PHP
+    data = request.json
 
     if not data or "texto" not in data:
         return jsonify({"error": "Falta el parámetro 'texto' en la solicitud."}), 400
 
-    texto_usuario = data["texto"]  # Ahora sí recibe el texto desde PHP
+    texto_usuario = data["texto"]
 
     # Generar respuesta con OpenAI
     respuesta_ia = client_openai.chat.completions.create(
@@ -34,19 +34,17 @@ def generar_audio():
         messages=[{"role": "user", "content": texto_usuario}]
     ).choices[0].message.content
 
-    # Generar URL de audio en ElevenLabs
- audio = client_elevenlabs.text_to_speech.convert(
-    text=respuesta_ia, voice_id=VOICE_ID
-)
+    # Generar audio con ElevenLabs
+    audio = client_elevenlabs.text_to_speech.convert(text=respuesta_ia, voice_id=VOICE_ID)
 
-# Guardar el archivo de audio en el servidor y devolver la URL
-audio_file = "output_audio.mp3"
-with open(audio_file, "wb") as f:
-    for chunk in audio:
-        f.write(chunk)
+    # Guardar archivo de audio temporal
+    audio_file = "output_audio.mp3"
+    with open(audio_file, "wb") as f:
+        for chunk in audio:
+            f.write(chunk)
 
-# Devolver una URL del audio (si tienes hosting de archivos, puedes usarlo)
-return jsonify({"respuesta": respuesta_ia, "audio_file": audio_file})
+    # Devolver el archivo de audio para reproducir en el navegador
+    return send_file(audio_file, mimetype="audio/mpeg")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
