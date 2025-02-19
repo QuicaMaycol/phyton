@@ -21,8 +21,12 @@ def home():
 @app.route("/generar_audio", methods=["POST"])
 def generar_audio():
     """Genera una respuesta con OpenAI y un audio con ElevenLabs"""
-    data = request.json
-    texto_usuario = data.get("texto", "Hola, bienvenido a ElevenLabs!")
+    data = request.json  # Recibir datos JSON desde PHP
+
+    if not data or "texto" not in data:
+        return jsonify({"error": "Falta el parámetro 'texto' en la solicitud."}), 400
+
+    texto_usuario = data["texto"]  # Ahora sí recibe el texto desde PHP
 
     # Generar respuesta con OpenAI
     respuesta_ia = client_openai.chat.completions.create(
