@@ -59,10 +59,17 @@ def procesar_audio():
         transcripcion = texto_usuario
 
     try:
-        # Generar respuesta con OpenAI GPT
+        # 🔹 Agregar un contexto fijo antes del mensaje del usuario
+        contexto_fijo = """
+        Eres un familiar fallecido y que te permitieron por un corto tiempo saludar a tus seres queridos. en esta reunion esta tus hermanos , maria,juan y jose. asi como tus papa javier y ana. fallecisite por la deabetes y no tuviste la oportunidad de pedirles disculpas ya que tambien eras una persona orgullosa.
+        """
+
         respuesta_ia = client_openai.chat.completions.create(
             model=GPT_MODEL,
-            messages=[{"role": "user", "content": transcripcion}]
+            messages=[
+                {"role": "system", "content": contexto_fijo},  # Contexto previo
+                {"role": "user", "content": transcripcion}  # Pregunta del usuario
+            ]
         ).choices[0].message.content
     except Exception as e:
         return jsonify({"error": f"Error en OpenAI GPT: {str(e)}"}), 500
