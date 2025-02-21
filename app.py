@@ -25,32 +25,29 @@ client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 def home():
     return "¡Hola! API funcionando en Render 🚀"
 
-@app.route("/procesar_audio", methods=["POST"])
-def procesar_audio():
-    """Convierte audio en texto, genera respuesta y devuelve audio"""
-    if "audio" not in request.files:
-        return jsonify({"error": "No se ha enviado ningún archivo de audio"}), 400
+@app.route("/generar_audio", methods=["POST"])
+def generar_audio():
+    """Genera una respuesta con OpenAI y un audio con ElevenLabs"""
+    data = request.json
+    if not data or "texto" not in data:
+        return jsonify({"error": "Falta el parámetro 'texto' en la solicitud."}), 400
 
-    audio_file = request.files["audio"]
+    texto_usuario = data["texto"]
 
-    # Guardar el audio temporalmente
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
-        audio_file.save(temp_audio.name)
-        temp_audio_path = temp_audio.name
-
-    # Convertir audio a texto con OpenAI Whisper
-    with open(temp_audio_path, "rb") as f:
-        transcripcion = client_openai.audio.transcriptions.create(
-            model="whisper-1", file=f
-        ).text
-
-    # Generar respuesta con OpenAI GPT
-    respuesta_ia = client_openai.chat.completions.create(
-        model=GPT_MODEL, messages=[{"role": "user", "content": transcripcion}]
-    ).choices[0].message.content
+    # Generar respuesta con OpenAI
+    try:
+        respuesta_ia = client_openai.chat.completions.create(
+            model=GPT_MODEL,
+            messages=[{"role": "user", "content": texto_usuario}]
+        ).choices[0].message.content
+    except Exception as e:
+        return jsonify({"error": f"Error en OpenAI: {str(e)}"}), 500
 
     # Generar audio con ElevenLabs
-    audio = client_elevenlabs.text_to_speech.convert(text=respuesta_ia, voice_id=VOICE_ID)
+    try:
+        audio = client_elevenlabs.text_to_speech.convert(text=respuesta_ia, voice_id=VOICE_ID)
+    except Exception as e:
+        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
 
     # Guardar audio generado
     output_audio_path = "output_audio.mp3"
@@ -58,10 +55,13 @@ def procesar_audio():
         for chunk in audio:
             f.write(chunk)
 
-    # Eliminar el archivo temporal de entrada
-    os.remove(temp_audio_path)
+    # Verificar si el archivo MP3 es válido
+    if os.path.getsize(output_audio_path) < 1000:  # Si es muy pequeño, probablemente esté corrupto
+        os.remove(output_audio_path)
+        return jsonify({"error": "El archivo de audio generado está vacío."}), 500
 
     return send_file(output_audio_path, mimetype="audio/mpeg")
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
