@@ -26,7 +26,7 @@ client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 def home():
     return "¡Hola! API funcionando en Render 🚀"
 
-@app.route("/generar_audio", methods=["POST"])
+@app.route("/procesar_audio", methods=["POST"])
 def generar_audio():
     """Genera una respuesta con OpenAI y un audio con ElevenLabs"""
     data = request.json
