@@ -30,7 +30,7 @@ def home():
 def procesar_audio():
     """Procesa texto o audio y devuelve respuesta en audio"""
 
-    # Si se envía un archivo de audio, lo convertimos a texto
+    # 🔹 SI SE ENVÍA UN ARCHIVO DE AUDIO, LO TRANSCRIBE
     if "audio" in request.files:
         audio_file = request.files["audio"]
 
@@ -51,11 +51,12 @@ def procesar_audio():
         finally:
             os.remove(temp_audio_path)  # Eliminar archivo temporal después de usarlo
 
-    # Si se envía texto, lo procesamos directamente
-    elif "texto" in request.json:
-        transcripcion = request.json["texto"]
+    # 🔹 SI SE ENVÍA TEXTO DIRECTAMENTE DESDE PHP/HTML, LO PROCESA
     else:
-        return jsonify({"error": "No se recibió ni audio ni texto."}), 400
+        texto_usuario = request.form.get("texto")  # Cambié request.json por request.form
+        if not texto_usuario:
+            return jsonify({"error": "No se recibió ni audio ni texto."}), 400
+        transcripcion = texto_usuario
 
     try:
         # Generar respuesta con OpenAI GPT
