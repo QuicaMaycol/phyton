@@ -18,7 +18,7 @@ if not OPENAI_API_KEY or not ELEVENLABS_API_KEY:
 GPT_MODEL = "gpt-3.5-turbo"
 VOICE_ID = "MlvaOZdX5RhuFeF0WNFz"
 
-# Configurar clientes de API
+# 🔹 Configurar las APIs
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
 client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
@@ -29,12 +29,12 @@ def home():
 @app.route("/procesar_audio", methods=["POST"])
 def procesar_audio():
     """Procesa texto o audio y devuelve respuesta en audio"""
-    
-    # Si se envía un archivo de audio
+
+    # Si se envía un archivo de audio, lo convertimos a texto
     if "audio" in request.files:
         audio_file = request.files["audio"]
 
-        # Guardar temporalmente el audio recibido
+        # Guardar archivo temporalmente
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
             audio_file.save(temp_audio.name)
             temp_audio_path = temp_audio.name
@@ -47,11 +47,11 @@ def procesar_audio():
                     file=f
                 ).text
         except Exception as e:
-            return jsonify({"error": f"Error en Whisper: {str(e)}"}), 500
+            return jsonify({"error": f"Error en OpenAI Whisper: {str(e)}"}), 500
         finally:
-            os.remove(temp_audio_path)  # Eliminar archivo temporal
+            os.remove(temp_audio_path)  # Eliminar archivo temporal después de usarlo
 
-    # Si se envía texto directamente
+    # Si se envía texto, lo procesamos directamente
     elif "texto" in request.json:
         transcripcion = request.json["texto"]
     else:
