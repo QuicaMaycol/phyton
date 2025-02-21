@@ -7,9 +7,14 @@ import os
 app = Flask(__name__)
 CORS(app)  # Habilita CORS para aceptar solicitudes de otros dominios
 
-# 🔹 CONFIGURA TUS CLAVES API 🔹
-OPENAI_API_KEY = "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"
-ELEVENLABS_API_KEY = "sk_bc783d4d3760d29a03b68cbb4337b51426bda252f3a89fd2"
+# 🔹 Configurar API Keys desde variables de entorno
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+
+# 🔹 Verificar si las API Keys están configuradas correctamente
+if not OPENAI_API_KEY or not ELEVENLABS_API_KEY:
+    raise ValueError("❌ ERROR: Faltan las claves API en las variables de entorno.")
+
 GPT_MODEL = "gpt-3.5-turbo"
 VOICE_ID = "MlvaOZdX5RhuFeF0WNFz"
 
