@@ -18,7 +18,7 @@ if not OPENAI_API_KEY or not ELEVENLABS_API_KEY:
 GPT_MODEL = "gpt-3.5-turbo"
 VOICE_ID = "MlvaOZdX5RhuFeF0WNFz"
 
-# 🔹 Configurar las APIs
+# Configurar clientes de API
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
 client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
@@ -27,29 +27,62 @@ def home():
     return "¡Hola! API funcionando en Render 🚀"
 
 @app.route("/procesar_audio", methods=["POST"])
-def generar_audio():
-    """Genera una respuesta con OpenAI y un audio con ElevenLabs"""
-    data = request.json
+def procesar_audio():
+    """Procesa texto o audio y devuelve respuesta en audio"""
+    
+    # Si se envía un archivo de audio
+    if "audio" in request.files:
+        audio_file = request.files["audio"]
 
-    if not data or "texto" not in data:
-        return jsonify({"error": "Falta el parámetro 'texto' en la solicitud."}), 400
+        # Guardar temporalmente el audio recibido
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+            audio_file.save(temp_audio.name)
+            temp_audio_path = temp_audio.name
 
-    texto_usuario = data["texto"]
+        try:
+            # Convertir audio a texto con OpenAI Whisper
+            with open(temp_audio_path, "rb") as f:
+                transcripcion = client_openai.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=f
+                ).text
+        except Exception as e:
+            return jsonify({"error": f"Error en Whisper: {str(e)}"}), 500
+        finally:
+            os.remove(temp_audio_path)  # Eliminar archivo temporal
 
-    # Generar respuesta con OpenAI
-    respuesta_ia = client_openai.chat.completions.create(
-        model=GPT_MODEL,
-        messages=[{"role": "user", "content": texto_usuario}]
-    ).choices[0].message.content
+    # Si se envía texto directamente
+    elif "texto" in request.json:
+        transcripcion = request.json["texto"]
+    else:
+        return jsonify({"error": "No se recibió ni audio ni texto."}), 400
 
-    # Generar audio con ElevenLabs
-    audio = client_elevenlabs.text_to_speech.convert(text=respuesta_ia, voice_id=VOICE_ID)
+    try:
+        # Generar respuesta con OpenAI GPT
+        respuesta_ia = client_openai.chat.completions.create(
+            model=GPT_MODEL,
+            messages=[{"role": "user", "content": transcripcion}]
+        ).choices[0].message.content
+    except Exception as e:
+        return jsonify({"error": f"Error en OpenAI GPT: {str(e)}"}), 500
 
-    # Guardar archivo de audio temporal
-    audio_file = "output_audio.mp3"
-    with open(audio_file, "wb") as f:
-        for chunk in audio:
-            f.write(chunk)
+    try:
+        # Generar audio con ElevenLabs
+        audio_stream = client_elevenlabs.text_to_speech.convert(
+            text=respuesta_ia,
+            voice_id=VOICE_ID
+        )
 
-    # Devolver el archivo de audio para reproducir en el navegador
-    return send_file(audio_file, mimetype="audio/mpeg")
+        # Guardar archivo de audio temporal
+        audio_file_path = "output_audio.mp3"
+        with open(audio_file_path, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+
+        return send_file(audio_file_path, mimetype="audio/mpeg")
+
+    except Exception as e:
+        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
