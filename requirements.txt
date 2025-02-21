@@ -6,3 +6,6 @@ elevenlabs
 simpleaudio
 werkzeug==2.0.3
 flask-cors
+tempfile
+gunicorn
+whisper
