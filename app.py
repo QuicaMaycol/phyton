@@ -82,15 +82,19 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
     try:
 
           # Configuración de la voz
-       
-      
+       voice_settings = {
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0.50,  # Se recomienda mantener en 0
+    "use_speaker_boost": True
+}
 
-        
+      
         # Generar audio con ElevenLabs
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
-            voice_id=VOICE_ID
-         
+            voice_id=VOICE_ID,
+         voice_settings=voice_settings
         )
 
         # Guardar archivo de audio temporal
