@@ -79,26 +79,33 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
     except Exception as e:
         return jsonify({"error": f"Error en OpenAI GPT: {str(e)}"}), 500
 
-  try:
-    # Configuración de la voz
+    try:
 
+          # Configuración de la voz
+       
+      
 
-    # Generar audio con ElevenLabs
-    audio_stream = client_elevenlabs.text_to_speech.convert(
-        text=respuesta_ia,
-        voice_id=VOICE_ID  
-    )
+        
+        # Generar audio con ElevenLabs
+        audio_stream = client_elevenlabs.text_to_speech.convert(
+            text=respuesta_ia,
+            voice_id=VOICE_ID
+         
+        )
 
-    # Guardar archivo de audio temporal
-    audio_file_path = "output_audio.mp3"
-    with open(audio_file_path, "wb") as f:
-        for chunk in audio_stream:
-            f.write(chunk)
+        # Guardar archivo de audio temporal
+        audio_file_path = "output_audio.mp3"
+        with open(audio_file_path, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
 
-    return send_file(audio_file_path, mimetype="audio/mpeg")
+            
+        return send_file(audio_file_path, mimetype="audio/mpeg")
 
-except Exception as e:
-    return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
+
