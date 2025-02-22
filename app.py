@@ -105,10 +105,16 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
             for chunk in audio_stream:
                 f.write(chunk)
 
+            # LOG PARA DEBUG
+            print(f"✅ Audio generado correctamente: {audio_file_path}")
+            
         return send_file(audio_file_path, mimetype="audio/mpeg")
 
     except Exception as e:
         return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+ except Exception as e:
+        print(f"🚨 ERROR GENERAL: {e}")
+        return jsonify({"error": f"Error desconocido: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
