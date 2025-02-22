@@ -82,21 +82,15 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
     try:
 
           # Configuración de la voz
-        voice_settings = {
-            "stability": 0.78,  # Ajusta estabilidad (0.0 - 1.0)
-            "similarity_boost": 0.77,  # Ajusta similitud con la voz clonada (0.0 - 1.0)
-            "style_exaggeration": 0.5  # Ajusta el estilo exagerado (0.0 - 1.0)
-        }
-         # 🔹 Seleccionar el modelo de ElevenLabs
-        model_selected = "eleven_multilingual_v2"  # 🌍 Soporta múltiples idiomas
+       
+      
 
         
         # Generar audio con ElevenLabs
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
-            voice_id=VOICE_ID,
-           model=model_selected,  # 🔹 Se usa el modelo seleccionado
-            voice_settings=voice_settings 
+            voice_id=VOICE_ID
+         
         )
 
         # Guardar archivo de audio temporal
@@ -105,16 +99,12 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
             for chunk in audio_stream:
                 f.write(chunk)
 
-            # LOG PARA DEBUG
-            print(f"✅ Audio generado correctamente: {audio_file_path}")
             
         return send_file(audio_file_path, mimetype="audio/mpeg")
 
     except Exception as e:
         return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
- except Exception as e:
-        print(f"🚨 ERROR GENERAL: {e}")
-        return jsonify({"error": f"Error desconocido: {str(e)}"}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
