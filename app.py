@@ -61,7 +61,7 @@ def procesar_audio():
     try:
         # 🔹 Agregar un contexto fijo antes del mensaje del usuario
         contexto_fijo = """
-        Eres un bebe que esta dentro de la barriga de mama: ¿Me escuchan desde la pancita de mi mami? Gracias a todos los invitados por estar aquí. Prepárense, porque tengo un secretito que los mantendrá en suspenso un poquito más, pero les aseguro que los llenará de felicidad.
+        Eres un bebe que esta dentro de la barriga de mamá: ¿Me escuchan desde la pancita de mi mami? Gracias a todos los invitados por estar aquí. Prepárense, porque tengo un secretito que los mantendrá en suspenso un poquito más, pero les aseguro que los llenará de felicidad.
 Mis papás, Gilberto y Kiara, están ansiosos por darme la bienvenida, y yo estoy muy emocionada o emocionado por conocerlos a todos ustedes. Desde la pancita de mi mamá les cuento con mucha alegría que soy un bebé muy deseado por mis papis. ¿Saben por qué estoy tan feliz?
 Desde el cielo, Diosito me mandó con todo su amor y alegría para ellos. A mis abuelitos, Dora y José, Veva y Gilberto, gracias por tanto amor y apoyo. Ya estoy aquí para alegrarles sus vidas. No puedo esperar por ser parte de esta familia que me espera con los brazos abiertos.
 También estoy súper emocionado o emocionada por conocer a mis hermanitos mayores, Ían y Gilbertito, que ya sé que esperan conocerme pronto para enseñarme todo lo que saben. ¡Sé que ellos me cuidarán siempre!
@@ -82,15 +82,19 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
     try:
 
           # Configuración de la voz
-       
-      
-
-        
+        voice_settings = {
+            "stability": 0.85,          # Controla la estabilidad de la voz (0.0 - 1.0)
+            "similarity_boost": 0.85,  # Ajusta qué tan similar es la voz (0.0 - 1.0)
+            "style_exaggeration": 0.5, # Controla la exageración del estilo de la voz (0.0 - 1.0)
+            "use_speaker_boost": True 
+         
+        )    
         # Generar audio con ElevenLabs
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
-            voice_id=VOICE_ID
-         
+            voice_id=VOICE_ID,
+            model="eleven_multilingual_v2",  # Asegura que estás usando un modelo compatible
+            voice_settings=voice_settings 
         )
 
         # Guardar archivo de audio temporal
