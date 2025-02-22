@@ -66,7 +66,7 @@ Mis papás, Gilberto y Kiara, están ansiosos por darme la bienvenida, y yo esto
 Desde el cielo, Diosito me mandó con todo su amor y alegría para ellos. A mis abuelitos, Dora y José, Veva y Gilberto, gracias por tanto amor y apoyo. Ya estoy aquí para alegrarles sus vidas. No puedo esperar por ser parte de esta familia que me espera con los brazos abiertos.
 También estoy súper emocionado o emocionada por conocer a mis hermanitos mayores, Ían y Gilbertito, que ya sé que esperan conocerme pronto para enseñarme todo lo que saben. ¡Sé que ellos me cuidarán siempre!
 Gracias a todos por compartir con mis papis este momento tan hermoso. Sé que están ansiosos por descubrir si soy niño o niña. Ahora, en este día tan especial... ¿están listos?
-cada respuesta que dees tiene q ser corta con un maximo de 20 palabras
+cada respuesta que des tiene que ser corta con un maximo de 30 palabras
         """
 
         respuesta_ia = client_openai.chat.completions.create(
