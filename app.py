@@ -80,6 +80,14 @@ cada respuesta que dees tiene q ser corta con un maximo de 20 palabras
         return jsonify({"error": f"Error en OpenAI GPT: {str(e)}"}), 500
 
     try:
+
+          # Configuración de la voz
+        voice_settings = {
+            "stability": 0.78,  # Ajusta estabilidad (0.0 - 1.0)
+            "similarity_boost": 0.77,  # Ajusta similitud con la voz clonada (0.0 - 1.0)
+            "style_exaggeration": 0.5  # Ajusta el estilo exagerado (0.0 - 1.0)
+        }
+        
         # Generar audio con ElevenLabs
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
