@@ -16,7 +16,7 @@ if not OPENAI_API_KEY or not ELEVENLABS_API_KEY:
     raise ValueError("❌ ERROR: Faltan las claves API en las variables de entorno.")
 
 GPT_MODEL = "gpt-3.5-turbo"
-VOICE_ID = "MlvaOZdX5RhuFeF0WNFz"
+VOICE_ID = "sd1ju7WLrhatskFTLPsP"
 
 # 🔹 Configurar las APIs
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
