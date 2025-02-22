@@ -79,7 +79,7 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
     except Exception as e:
         return jsonify({"error": f"Error en OpenAI GPT: {str(e)}"}), 500
 
-   try:
+  try:
     # Configuración de la voz
     voice_settings = {
         "stability": 0.5,          # Controla la estabilidad de la voz (0.0 - 1.0)
@@ -93,7 +93,7 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
         text=respuesta_ia,
         voice_id=VOICE_ID,
         model="eleven_multilingual_v2",  # Asegura que estás usando un modelo compatible
-        voice_settings=voice_settings    # 🔹 Parcheado: Usamos la configuración correcta
+        voice_settings=voice_settings    # 🔹 Usamos la configuración correcta
     )
 
     # Guardar archivo de audio temporal
@@ -106,7 +106,6 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
 
 except Exception as e:
     return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
-
 
 if __name__ == "__main__":
     app.run(debug=True)
