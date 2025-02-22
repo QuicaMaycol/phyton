@@ -94,7 +94,7 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
             voice_id=VOICE_ID,
-            voice_setting=voice_settings,
+            voice_setting=voice_setting,
              model=model_selected 
         )
 
