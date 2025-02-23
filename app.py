@@ -84,7 +84,7 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
         # Generar audio con ElevenLabs
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
-            stability: 0.5,
+            stability: "0.5",
             model="eleven_multilingual_v2",  # Asegura que estás usando un modelo compatible 
             voice_id=VOICE_ID
            
