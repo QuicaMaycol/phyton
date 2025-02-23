@@ -81,13 +81,6 @@ cada respuesta que des tiene que ser corta con un maximo de 30 palabras
 
     try:
 
-          # Configuración de la voz
-        voice_settings = {
-            "stability": 0.85,          # Controla la estabilidad de la voz (0.0 - 1.0)
-            "similarity_boost": 0.85,  # Ajusta qué tan similar es la voz (0.0 - 1.0)
-            "style_exaggeration": 0.5, # Controla la exageración del estilo de la voz (0.0 - 1.0)
-            "use_speaker_boost": True 
-        }   
         # Generar audio con ElevenLabs
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
