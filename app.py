@@ -70,9 +70,6 @@ def procesar_audio():
 
         print("✅ Respuesta generada por GPT:", respuesta_ia)
 
-        # 🔹 Verificar compatibilidad del modelo y los parámetros de voz
-        model_selected = "eleven_multilingual_v2"
-
         # 🔹 Configuración de voz con formato correcto
         voice_settings = {
             "stability": 0.5,
@@ -86,7 +83,6 @@ def procesar_audio():
         audio_stream = client_elevenlabs.text_to_speech.convert(
             text=respuesta_ia,
             voice_id=VOICE_ID,
-            model=model_selected,
             voice_settings=voice_settings
         )
 
