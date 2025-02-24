@@ -18,7 +18,7 @@ if not OPENAI_API_KEY or not ELEVENLABS_API_KEY:
 GPT_MODEL = "gpt-3.5-turbo"
 VOICE_ID = "49pvmUvKahnBa06h2FhH"
 
-# 🔹 Configurar las APIs
+# Configurar las APIs
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
 client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
@@ -55,7 +55,7 @@ def procesar_audio():
                 return jsonify({"error": "No se recibió ni audio ni texto."}), 400
             transcripcion = texto_usuario
 
-        # 🔹 Agregar un contexto fijo antes del mensaje del usuario
+        # Agregar un contexto fijo antes del mensaje del usuario
         contexto_fijo = """
         Eres un bebé que está dentro de la barriga de mamá. Hablas de forma corta y concisa, con un máximo de 30 palabras por respuesta.
         """
@@ -70,7 +70,7 @@ def procesar_audio():
 
         print("✅ Respuesta generada por GPT:", respuesta_ia)
 
-        # 🔹 Configuración de voz con formato correcto
+        # Configuración de voz
         voice_settings = {
             "stability": 0.5,
             "similarity_boost": 0.75,
@@ -79,17 +79,20 @@ def procesar_audio():
 
         print("🔹 Enviando solicitud a ElevenLabs...")
 
-        # 🔹 Generar audio con ElevenLabs
-        audio_stream = client_elevenlabs.text_to_speech.convert(
+        # Generar audio con ElevenLabs utilizando convert_as_stream
+        audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
             text=respuesta_ia,
             voice_id=VOICE_ID,
+            model_id="eleven_multilingual_v2",  # Especifica el modelo deseado
             voice_settings=voice_settings
         )
 
+        # Guardar archivo de audio temporal
         audio_file_path = "output_audio.mp3"
         with open(audio_file_path, "wb") as f:
             for chunk in audio_stream:
-                f.write(chunk)
+                if isinstance(chunk, bytes):
+                    f.write(chunk)
 
         print("✅ Audio generado correctamente en ElevenLabs.")
 
@@ -98,6 +101,10 @@ def procesar_audio():
     except Exception as e:
         print(f"🚨 ERROR en ElevenLabs: {str(e)}")
         return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
