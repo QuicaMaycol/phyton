@@ -69,34 +69,30 @@ def procesar_audio():
     except Exception as e:
         return jsonify({"error": f"Error en OpenAI GPT: {str(e)}"}), 500
 
-    try:
-        # 🔹 Verificar compatibilidad del modelo y los parámetros de voz
-        model_selected = "eleven_multilingual_v2"
+   try:
+    print("🔹 Enviando solicitud a ElevenLabs...")  # Log para ver si se ejecuta
 
-        # 🔹 Configuración de voz con formato correcto
-        voice_settings = {
-            "stability": 0.5,
-            "similarity_boost": 0.75,
-            "style_exaggeration": 0.5
-        }
+    # Generar audio con ElevenLabs
+    audio_stream = client_elevenlabs.text_to_speech.convert(
+        text=respuesta_ia,
+        voice_id=VOICE_ID,
+        model="eleven_multilingual_v2",  # Asegura que estás usando un modelo compatible
+        voice_settings=voice_settings
+    )
 
-        # 🔹 Generar audio con ElevenLabs
-        audio_stream = client_elevenlabs.text_to_speech.convert(
-            text=respuesta_ia,
-            voice_id=VOICE_ID,
-            model=model_selected,
-            voice_settings=voice_settings
-        )
+    print("✅ Audio generado correctamente en ElevenLabs.")  # Log de éxito
 
-        audio_file_path = "output_audio.mp3"
-        with open(audio_file_path, "wb") as f:
-            for chunk in audio_stream:
-                f.write(chunk)
+    # Guardar archivo de audio temporal
+    audio_file_path = "output_audio.mp3"
+    with open(audio_file_path, "wb") as f:
+        for chunk in audio_stream:
+            f.write(chunk)
 
-        return send_file(audio_file_path, mimetype="audio/mpeg")
+    return send_file(audio_file_path, mimetype="audio/mpeg")
 
-    except Exception as e:
-        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+except Exception as e:
+    print(f"🚨 ERROR en ElevenLabs: {str(e)}")  # Imprime el error en los logs
+    return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
