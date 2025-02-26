@@ -84,8 +84,8 @@ El tono debe ser dulce, amoroso, con un poco de humor y lleno de emoción, como 
         # Configuración de voz
         voice_settings = {
             "stability": 0.5,
-            "similarity_boost": 0.75,
-            "style_exaggeration": 0.5
+            "similarity_boost": 0.74,
+            "style_exaggeration": 0.15
         }
 
         print("🔹 Enviando solicitud a ElevenLabs...")
