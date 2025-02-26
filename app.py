@@ -93,9 +93,10 @@ ________________________________________
 
         # Configuración de voz
         voice_settings = {
-            "stability": 0.5,
-            "similarity_boost": 0.74,
-            "style_exaggeration": 0.15
+            "speed":0.95,
+            "stability": 0.69,
+            "similarity_boost": 0.97,
+            "style_exaggeration": 0.50
         }
 
         print("🔹 Enviando solicitud a ElevenLabs...")
