@@ -4,6 +4,7 @@ import openai
 from elevenlabs.client import ElevenLabs
 import os
 import tempfile
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -15,118 +16,144 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 if not OPENAI_API_KEY or not ELEVENLABS_API_KEY:
     raise ValueError("❌ ERROR: Faltan las claves API en las variables de entorno.")
 
-GPT_MODEL = "gpt-3.5-turbo"
+GPT_MODEL = "gpt-4-turbo"
 VOICE_ID = "aYHdlWZCf3mMz6gp1gTE"
 
-# Configurar las APIs
+# Inicializar clientes de OpenAI y ElevenLabs
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
 client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
-@app.route("/")
-def home():
-    return "¡Hola! API funcionando en Render 🚀"
+# -------------------- CREAR ASISTENTE --------------------
 
-@app.route("/procesar_audio", methods=["POST"])
-def procesar_audio():
-    """Procesa texto o audio y devuelve respuesta en audio"""
+# Crear un asistente en OpenAI
+assistant = client_openai.beta.assistants.create(
+    name="MagicVoice AI",
+    instructions="Eres un asistente especializado en ayudar con MagicVoice y MagicMemory. Responde con empatía y claridad.",
+    model=GPT_MODEL
+)
 
-    try:
-        if "audio" in request.files:
-            audio_file = request.files["audio"]
+ASSISTANT_ID = assistant.id
+print(f"✅ Asistente creado con ID: {ASSISTANT_ID}")
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
-                audio_file.save(temp_audio.name)
-                temp_audio_path = temp_audio.name
+# -------------------- RUTA PARA ENTRENAR AL ASISTENTE --------------------
 
-            try:
-                with open(temp_audio_path, "rb") as f:
-                    transcripcion = client_openai.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=f
-                    ).text
-            except Exception as e:
-                return jsonify({"error": f"Error en OpenAI Whisper: {str(e)}"}), 500
-            finally:
-                os.remove(temp_audio_path)
+@app.route("/entrenar_asistente", methods=["POST"])
+def entrenar_asistente():
+    """Permite que el usuario agregue información de entrenamiento al asistente"""
 
-        else:
-            texto_usuario = request.form.get("texto")
-            if not texto_usuario:
-                return jsonify({"error": "No se recibió ni audio ni texto."}), 400
-            transcripcion = texto_usuario
+    data = request.json
+    if not data or "info" not in data:
+        return jsonify({"error": "Falta información para entrenar"}), 400
 
-        # Agregar un contexto fijo antes del mensaje del usuario
-        contexto_fijo = """
-Eres un bebé que aún no ha nacido, pero que puede hablar con su familia en esta reunión especial.
-Tus papás son Rosario y Virgilio, y serás su primer hijo.
-Tu familia está emocionada por conocerte: tus tías Fiorela y Anita y tu primita Sofía te esperan con ansias.
-Tus abuelitos son Julia y Fernando (por parte de mamá) y María y José (por parte de papá).
-Mamá es profesora de inicial y papá es profesor de educación física. Se ilusionan con que, si eres niño, puedas jugar fútbol con papá en su academia, pero si eres niña, te amarán igual y te apoyarán en lo que te guste.
-La familia de mamá, los Quicaños, son un grupo un poco alocado, bullicioso y unido. La familia de papá también es muy cariñosa y atenta con mamá.
-Estás en una reunión especial donde todos esperan conocer si eres niño o niña.
-1️⃣ Tus respuestas deben ser cortas, de máximo 100 palabras.
-2️⃣ Siempre responde con alegría, ternura y emoción, ya que eres un bebé lleno de amor y curiosidad.
-3️⃣ Si alguien menciona un nombre que no reconoces, responde saludando con dulzura indicando te visite cuando nazca para que se conozcan.
-4️⃣ Usa un tono juguetón e inocente, con toques de humor infantil y chistes tiernos cuando sea apropiado.
-5 la unica persona que sabe tu sexo es tu tia Liz, Asi que has una broma para que puedan sacarele el secreto.
-________________________________________
-📢 Ejemplos de Respuestas (Modelo de Conversación IA)
-❓ Invitado: Bebé, ¿cómo te sientes hoy?
-👶 Bebé: ¡Feliz y bailando en la panza de mamá! Aunque creo que hoy comió algo picante… ¡se siente como un tobogán aquí adentro! 🎢😆
-❓ Tía Anita: Bebé, ¿qué te gustaría hacer cuando nazcas?
-👶 Bebé: ¡Primero, abrazar a mamá y papá! Luego, aprender a hablar sin sonar como burbujitas… ¡y probar helado! 🍦🤭
-❓ Invitado desconocido: Hola bebé, ¿ya sabes si eres niño o niña?
-👶 Bebé: ¡Hola! Pues eso solo solo lo saben mi tía Liz y yo. Para que hable traigan la silla eléctrica.  🥰
-❓ Abuelo Fernando: Bebé, ¿quieres que te enseñe a pescar?
-👶 Bebé: ¡Siií! Pero primero tengo que aprender a sostener un biberón sin tirarlo… ¡parece más difícil que pescar un pez! 🎣😂
-"
-        """
+    info = data["info"]
 
-        respuesta_ia = client_openai.chat.completions.create(
-            model=GPT_MODEL,
-            messages=[
-                {"role": "system", "content": contexto_fijo},
-                {"role": "user", "content": transcripcion}
-            ]
-        ).choices[0].message.content
+    # Crear un hilo de conversación para almacenar el entrenamiento
+    thread = client_openai.beta.threads.create()
 
-        print("✅ Respuesta generada por GPT:", respuesta_ia)
+    # Guardar la información como un mensaje del sistema
+    message = client_openai.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="system",
+        content=info
+    )
 
-        # Configuración de voz
-        voice_settings = {
-            "speed":0.95,
+    return jsonify({"mensaje": "Entrenamiento agregado correctamente", "thread_id": thread.id})
+
+
+# -------------------- RUTA PARA CHATEAR CON EL ASISTENTE --------------------
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    """Permite enviar mensajes al asistente y obtener respuestas"""
+
+    data = request.json
+    if not data or "mensaje" not in data or "thread_id" not in data:
+        return jsonify({"error": "Faltan datos"}), 400
+
+    mensaje_usuario = data["mensaje"]
+    thread_id = data["thread_id"]
+
+    # Enviar mensaje al hilo de conversación del asistente
+    client_openai.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=mensaje_usuario
+    )
+
+    # Ejecutar el asistente para obtener respuesta
+    run = client_openai.beta.threads.runs.create(thread_id=thread_id, assistant_id=ASSISTANT_ID)
+
+    # Esperar respuesta
+    while True:
+        run_status = client_openai.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+        if run_status.status == "completed":
+            break
+        time.sleep(1)
+
+    # Obtener respuesta
+    messages = client_openai.beta.threads.messages.list(thread_id=thread_id)
+    respuesta_ia = messages.data[0].content
+
+    return jsonify({"respuesta": respuesta_ia})
+
+
+# -------------------- RUTA PARA RESPUESTA EN VOZ --------------------
+
+@app.route("/chat_voz", methods=["POST"])
+def chat_voz():
+    """Permite enviar mensajes al asistente y recibir respuesta en voz"""
+
+    data = request.json
+    if not data or "mensaje" not in data or "thread_id" not in data:
+        return jsonify({"error": "Faltan datos"}), 400
+
+    mensaje_usuario = data["mensaje"]
+    thread_id = data["thread_id"]
+
+    # Enviar mensaje al asistente
+    client_openai.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=mensaje_usuario
+    )
+
+    # Ejecutar el asistente
+    run = client_openai.beta.threads.runs.create(thread_id=thread_id, assistant_id=ASSISTANT_ID)
+
+    # Esperar respuesta
+    while True:
+        run_status = client_openai.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+        if run_status.status == "completed":
+            break
+        time.sleep(1)
+
+    # Obtener respuesta
+    messages = client_openai.beta.threads.messages.list(thread_id=thread_id)
+    respuesta_ia = messages.data[0].content
+
+    # Convertir a voz con ElevenLabs
+    audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
+        text=respuesta_ia,
+        voice_id=VOICE_ID,
+        model_id="eleven_multilingual_v2",
+        voice_settings={
+            "speed": 0.95,
             "stability": 0.69,
             "similarity_boost": 0.97,
             "style_exaggeration": 0.50
         }
+    )
 
-        print("🔹 Enviando solicitud a ElevenLabs...")
+    # Guardar archivo de audio temporal
+    audio_file_path = "output_audio.mp3"
+    with open(audio_file_path, "wb") as f:
+        for chunk in audio_stream:
+            if isinstance(chunk, bytes):
+                f.write(chunk)
 
-        # Generar audio con ElevenLabs utilizando convert_as_stream
-        audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
-            text=respuesta_ia,
-            voice_id=VOICE_ID,
-            model_id="eleven_multilingual_v2",  # Especifica el modelo deseado
-            voice_settings=voice_settings
-        )
+    print("✅ Audio generado correctamente en ElevenLabs.")
 
-        # Guardar archivo de audio temporal
-        audio_file_path = "output_audio.mp3"
-        with open(audio_file_path, "wb") as f:
-            for chunk in audio_stream:
-                if isinstance(chunk, bytes):
-                    f.write(chunk)
-
-        print("✅ Audio generado correctamente en ElevenLabs.")
-
-        return send_file(audio_file_path, mimetype="audio/mpeg")
-
-    except Exception as e:
-        print(f"🚨 ERROR en ElevenLabs: {str(e)}")
-        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    return send_file(audio_file_path, mimetype="audio/mpeg")
 
 
 if __name__ == "__main__":
