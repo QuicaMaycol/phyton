@@ -35,126 +35,123 @@ assistant = client_openai.beta.assistants.create(
 ASSISTANT_ID = assistant.id
 print(f"✅ Asistente creado con ID: {ASSISTANT_ID}")
 
-# -------------------- RUTA PARA ENTRENAR AL ASISTENTE --------------------
+@app.route("/")
+def home():
+    return "¡Hola! API funcionando en Render 🚀"
 
-@app.route("/entrenar_asistente", methods=["POST"])
-def entrenar_asistente():
-    """Permite que el usuario agregue información de entrenamiento al asistente"""
+@app.route("/procesar_audio", methods=["POST"])
+def procesar_audio():
+    """Procesa texto o audio y devuelve respuesta en audio"""
 
-    data = request.json
-    if not data or "info" not in data:
-        return jsonify({"error": "Falta información para entrenar"}), 400
+    try:
+        if "audio" in request.files:
+            audio_file = request.files["audio"]
 
-    info = data["info"]
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+                audio_file.save(temp_audio.name)
+                temp_audio_path = temp_audio.name
 
-    # Crear un hilo de conversación para almacenar el entrenamiento
-    thread = client_openai.beta.threads.create()
+            try:
+                with open(temp_audio_path, "rb") as f:
+                    transcripcion = client_openai.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=f
+                    ).text
+            except Exception as e:
+                return jsonify({"error": f"Error en OpenAI Whisper: {str(e)}"}), 500
+            finally:
+                os.remove(temp_audio_path)
 
-    # Guardar la información como un mensaje del sistema
-    message = client_openai.beta.threads.messages.create(
-        thread_id=thread.id,
-        role="system",
-        content=info
-    )
+        else:
+            texto_usuario = request.form.get("texto")
+            if not texto_usuario:
+                return jsonify({"error": "No se recibió ni audio ni texto."}), 400
+            transcripcion = texto_usuario
 
-    return jsonify({"mensaje": "Entrenamiento agregado correctamente", "thread_id": thread.id})
+        # Enviar el texto al asistente
+        respuesta_ia = client_openai.chat.completions.create(
+            model=GPT_MODEL,
+            messages=[
+                {"role": "user", "content": transcripcion}
+            ]
+        ).choices[0].message.content
 
+        print("✅ Respuesta generada por GPT:", respuesta_ia)
 
-# -------------------- RUTA PARA CHATEAR CON EL ASISTENTE --------------------
-
-@app.route("/chat", methods=["POST"])
-def chat():
-    """Permite enviar mensajes al asistente y obtener respuestas"""
-
-    data = request.json
-    if not data or "mensaje" not in data or "thread_id" not in data:
-        return jsonify({"error": "Faltan datos"}), 400
-
-    mensaje_usuario = data["mensaje"]
-    thread_id = data["thread_id"]
-
-    # Enviar mensaje al hilo de conversación del asistente
-    client_openai.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=mensaje_usuario
-    )
-
-    # Ejecutar el asistente para obtener respuesta
-    run = client_openai.beta.threads.runs.create(thread_id=thread_id, assistant_id=ASSISTANT_ID)
-
-    # Esperar respuesta
-    while True:
-        run_status = client_openai.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-        if run_status.status == "completed":
-            break
-        time.sleep(1)
-
-    # Obtener respuesta
-    messages = client_openai.beta.threads.messages.list(thread_id=thread_id)
-    respuesta_ia = messages.data[0].content
-
-    return jsonify({"respuesta": respuesta_ia})
-
-
-# -------------------- RUTA PARA RESPUESTA EN VOZ --------------------
-
-@app.route("/chat_voz", methods=["POST"])
-def chat_voz():
-    """Permite enviar mensajes al asistente y recibir respuesta en voz"""
-
-    data = request.json
-    if not data or "mensaje" not in data or "thread_id" not in data:
-        return jsonify({"error": "Faltan datos"}), 400
-
-    mensaje_usuario = data["mensaje"]
-    thread_id = data["thread_id"]
-
-    # Enviar mensaje al asistente
-    client_openai.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=mensaje_usuario
-    )
-
-    # Ejecutar el asistente
-    run = client_openai.beta.threads.runs.create(thread_id=thread_id, assistant_id=ASSISTANT_ID)
-
-    # Esperar respuesta
-    while True:
-        run_status = client_openai.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-        if run_status.status == "completed":
-            break
-        time.sleep(1)
-
-    # Obtener respuesta
-    messages = client_openai.beta.threads.messages.list(thread_id=thread_id)
-    respuesta_ia = messages.data[0].content
-
-    # Convertir a voz con ElevenLabs
-    audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
-        text=respuesta_ia,
-        voice_id=VOICE_ID,
-        model_id="eleven_multilingual_v2",
-        voice_settings={
-            "speed": 0.95,
+        # Configuración de voz
+        voice_settings = {
+            "speed":0.95,
             "stability": 0.69,
             "similarity_boost": 0.97,
             "style_exaggeration": 0.50
         }
-    )
 
-    # Guardar archivo de audio temporal
-    audio_file_path = "output_audio.mp3"
-    with open(audio_file_path, "wb") as f:
-        for chunk in audio_stream:
-            if isinstance(chunk, bytes):
-                f.write(chunk)
+        print("🔹 Enviando solicitud a ElevenLabs...")
 
-    print("✅ Audio generado correctamente en ElevenLabs.")
+        # Generar audio con ElevenLabs utilizando convert_as_stream
+        audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
+            text=respuesta_ia,
+            voice_id=VOICE_ID,
+            model_id="eleven_multilingual_v2",
+            voice_settings=voice_settings
+        )
 
-    return send_file(audio_file_path, mimetype="audio/mpeg")
+        # Guardar archivo de audio temporal
+        audio_file_path = "output_audio.mp3"
+        with open(audio_file_path, "wb") as f:
+            for chunk in audio_stream:
+                if isinstance(chunk, bytes):
+                    f.write(chunk)
 
+        print("✅ Audio generado correctamente en ElevenLabs.")
+
+        return send_file(audio_file_path, mimetype="audio/mpeg")
+
+    except Exception as e:
+        print(f"🚨 ERROR en ElevenLabs: {str(e)}")
+        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+
+# -------------------- RUTA PARA PROCESAR IMÁGENES --------------------
+
+@app.route("/procesar_imagen", methods=["POST"])
+def procesar_imagen():
+    """Procesa una imagen y devuelve una respuesta en texto o voz"""
+
+    try:
+        if "imagen" not in request.files:
+            return jsonify({"error": "No se recibió una imagen."}), 400
+
+        imagen_file = request.files["imagen"]
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_imagen:
+            imagen_file.save(temp_imagen.name)
+            imagen_path = temp_imagen.name
+
+        # Enviar imagen a GPT-4 Turbo Vision
+        response = client_openai.chat.completions.create(
+            model="gpt-4-turbo-vision",
+            messages=[
+                {"role": "system", "content": "Describe la imagen con empatía."},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "¿Qué ves en esta imagen?"},
+                    {"type": "image_url", "image_url": {"url": f"file://{imagen_path}"}}
+                ]}
+            ]
+        )
+
+        respuesta_ia = response.choices[0].message.content
+        os.remove(imagen_path)  # Borrar imagen después de procesarla
+
+        print("✅ Respuesta generada por GPT Vision:", respuesta_ia)
+
+        return jsonify({"respuesta": respuesta_ia})
+
+    except Exception as e:
+        print(f"🚨 ERROR: {str(e)}")
+        return jsonify({"error": f"Error procesando imagen: {str(e)}"}), 500
+
+# -------------------- CONFIGURAR EL PUERTO EN RENDER --------------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Usar el puerto que asigna Render
+    app.run(host="0.0.0.0", port=port, debug=True)
