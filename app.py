@@ -23,17 +23,10 @@ VOICE_ID = "aYHdlWZCf3mMz6gp1gTE"
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
 client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
-# -------------------- CREAR ASISTENTE --------------------
-
-# Crear un asistente en OpenAI
-assistant = client_openai.beta.assistants.create(
-    name="MagicVoice AI",
-    instructions="Eres un asistente especializado en ayudar con MagicVoice y MagicMemory. Responde con empatía y claridad.",
-    model=GPT_MODEL
-)
-
-ASSISTANT_ID = assistant.id
-print(f"✅ Asistente creado con ID: {ASSISTANT_ID}")
+# Crear un nuevo hilo para recordar la conversación
+thread = client_openai.beta.threads.create()
+THREAD_ID = thread.id
+print(f"✅ Conversación iniciada con ID: {THREAD_ID}")
 
 @app.route("/")
 def home():
@@ -71,13 +64,26 @@ def procesar_audio():
                 return jsonify({"error": "No se recibió ni audio ni texto."}), 400
             transcripcion = texto_usuario
 
-        # Enviar el texto al asistente para obtener respuesta
-        respuesta_ia = client_openai.chat.completions.create(
-            model=GPT_MODEL,
-            messages=[
-                {"role": "user", "content": transcripcion}
-            ]
-        ).choices[0].message.content
+        # Enviar el mensaje al mismo `thread_id`
+        client_openai.beta.threads.messages.create(
+            thread_id=THREAD_ID,
+            role="user",
+            content=transcripcion
+        )
+
+        # Ejecutar el asistente en el mismo hilo para recordar la conversación
+        run = client_openai.beta.threads.runs.create(thread_id=THREAD_ID, assistant_id=GPT_MODEL)
+
+        # Esperar respuesta
+        while True:
+            run_status = client_openai.beta.threads.runs.retrieve(thread_id=THREAD_ID, run_id=run.id)
+            if run_status.status == "completed":
+                break
+            time.sleep(1)
+
+        # Obtener la respuesta
+        messages = client_openai.beta.threads.messages.list(thread_id=THREAD_ID)
+        respuesta_ia = messages.data[0].content
 
         print("✅ Respuesta generada por GPT:", respuesta_ia)
 
@@ -113,46 +119,6 @@ def procesar_audio():
     except Exception as e:
         print(f"🚨 ERROR en procesar_audio: {str(e)}")
         return jsonify({"error": f"Error en procesar_audio: {str(e)}"}), 500
-
-
-# -------------------- RUTA PARA PROCESAR IMÁGENES --------------------
-
-@app.route("/procesar_imagen", methods=["POST"])
-def procesar_imagen():
-    """Procesa una imagen y devuelve una respuesta en texto o voz"""
-
-    try:
-        if "imagen" not in request.files:
-            return jsonify({"error": "No se recibió una imagen."}), 400
-
-        imagen_file = request.files["imagen"]
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_imagen:
-            imagen_file.save(temp_imagen.name)
-            imagen_path = temp_imagen.name
-
-        # Enviar imagen a GPT-4 Turbo Vision
-        response = client_openai.chat.completions.create(
-            model="gpt-4-turbo-vision",
-            messages=[
-                {"role": "system", "content": "Describe la imagen con empatía."},
-                {"role": "user", "content": [
-                    {"type": "text", "text": "¿Qué ves en esta imagen?"},
-                    {"type": "image_url", "image_url": {"url": f"file://{imagen_path}"}}
-                ]}
-            ]
-        )
-
-        respuesta_ia = response.choices[0].message.content
-        os.remove(imagen_path)  # Borrar imagen después de procesarla
-
-        print("✅ Respuesta generada por GPT Vision:", respuesta_ia)
-
-        return jsonify({"respuesta": respuesta_ia})
-
-    except Exception as e:
-        print(f"🚨 ERROR: {str(e)}")
-        return jsonify({"error": f"Error procesando imagen: {str(e)}"}), 500
 
 # -------------------- CONFIGURAR EL PUERTO EN RENDER --------------------
 
