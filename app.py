@@ -44,6 +44,8 @@ def procesar_audio():
     """Procesa texto o audio y devuelve respuesta en audio"""
 
     try:
+        transcripcion = ""
+
         if "audio" in request.files:
             audio_file = request.files["audio"]
 
@@ -58,9 +60,10 @@ def procesar_audio():
                         file=f
                     ).text
             except Exception as e:
+                os.remove(temp_audio_path)  # Asegurar eliminación del archivo en caso de error
                 return jsonify({"error": f"Error en OpenAI Whisper: {str(e)}"}), 500
             finally:
-                os.remove(temp_audio_path)
+                os.remove(temp_audio_path)  # Eliminar archivo después de procesarlo
 
         else:
             texto_usuario = request.form.get("texto")
@@ -68,7 +71,7 @@ def procesar_audio():
                 return jsonify({"error": "No se recibió ni audio ni texto."}), 400
             transcripcion = texto_usuario
 
-        # Enviar el texto al asistente
+        # Enviar el texto al asistente para obtener respuesta
         respuesta_ia = client_openai.chat.completions.create(
             model=GPT_MODEL,
             messages=[
@@ -78,9 +81,9 @@ def procesar_audio():
 
         print("✅ Respuesta generada por GPT:", respuesta_ia)
 
-        # Configuración de voz
+        # Configuración de voz para ElevenLabs
         voice_settings = {
-            "speed":0.95,
+            "speed": 0.95,
             "stability": 0.69,
             "similarity_boost": 0.97,
             "style_exaggeration": 0.50
@@ -88,7 +91,7 @@ def procesar_audio():
 
         print("🔹 Enviando solicitud a ElevenLabs...")
 
-        # Generar audio con ElevenLabs utilizando convert_as_stream
+        # Generar audio con ElevenLabs
         audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
             text=respuesta_ia,
             voice_id=VOICE_ID,
@@ -105,11 +108,12 @@ def procesar_audio():
 
         print("✅ Audio generado correctamente en ElevenLabs.")
 
-return send_file(audio_file_path, mimetype="audio/mpeg", as_attachment=False)
+        return send_file(audio_file_path, mimetype="audio/mpeg", as_attachment=False)
 
     except Exception as e:
-        print(f"🚨 ERROR en ElevenLabs: {str(e)}")
-        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
+        print(f"🚨 ERROR en procesar_audio: {str(e)}")
+        return jsonify({"error": f"Error en procesar_audio: {str(e)}"}), 500
+
 
 # -------------------- RUTA PARA PROCESAR IMÁGENES --------------------
 
