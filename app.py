@@ -4,7 +4,6 @@ import openai
 from elevenlabs.client import ElevenLabs
 import os
 import tempfile
-import time
 
 app = Flask(__name__)
 CORS(app)
@@ -16,17 +15,12 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 if not OPENAI_API_KEY or not ELEVENLABS_API_KEY:
     raise ValueError("❌ ERROR: Faltan las claves API en las variables de entorno.")
 
-GPT_MODEL = "gpt-4-turbo"
+GPT_MODEL = "gpt-3.5-turbo"
 VOICE_ID = "aYHdlWZCf3mMz6gp1gTE"
 
-# Inicializar clientes de OpenAI y ElevenLabs
+# Configurar las APIs
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
 client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-
-# Crear un nuevo hilo para recordar la conversación
-thread = client_openai.beta.threads.create()
-THREAD_ID = thread.id
-print(f"✅ Conversación iniciada con ID: {THREAD_ID}")
 
 @app.route("/")
 def home():
@@ -37,8 +31,6 @@ def procesar_audio():
     """Procesa texto o audio y devuelve respuesta en audio"""
 
     try:
-        transcripcion = ""
-
         if "audio" in request.files:
             audio_file = request.files["audio"]
 
@@ -53,10 +45,9 @@ def procesar_audio():
                         file=f
                     ).text
             except Exception as e:
-                os.remove(temp_audio_path)  # Asegurar eliminación del archivo en caso de error
                 return jsonify({"error": f"Error en OpenAI Whisper: {str(e)}"}), 500
             finally:
-                os.remove(temp_audio_path)  # Eliminar archivo después de procesarlo
+                os.remove(temp_audio_path)
 
         else:
             texto_usuario = request.form.get("texto")
@@ -64,32 +55,46 @@ def procesar_audio():
                 return jsonify({"error": "No se recibió ni audio ni texto."}), 400
             transcripcion = texto_usuario
 
-        # Enviar el mensaje al mismo `thread_id`
-        client_openai.beta.threads.messages.create(
-            thread_id=THREAD_ID,
-            role="user",
-            content=transcripcion
-        )
+        # Agregar un contexto fijo antes del mensaje del usuario
+        contexto_fijo = """
+Eres un bebé que aún no ha nacido, pero que puede hablar con su familia en esta reunión especial.
+Tus papás son Rosario y Virgilio, y serás su primer hijo.
+Tu familia está emocionada por conocerte: tus tías Fiorela y Anita y tu primita Sofía te esperan con ansias.
+Tus abuelitos son Julia y Fernando (por parte de mamá) y María y José (por parte de papá).
+Mamá es profesora de inicial y papá es profesor de educación física. Se ilusionan con que, si eres niño, puedas jugar fútbol con papá en su academia, pero si eres niña, te amarán igual y te apoyarán en lo que te guste.
+La familia de mamá, los Quicaños, son un grupo un poco alocado, bullicioso y unido. La familia de papá también es muy cariñosa y atenta con mamá.
+Estás en una reunión especial donde todos esperan conocer si eres niño o niña.
+1️⃣ Tus respuestas deben ser cortas, de máximo 100 palabras.
+2️⃣ Siempre responde con alegría, ternura y emoción, ya que eres un bebé lleno de amor y curiosidad.
+3️⃣ Si alguien menciona un nombre que no reconoces, responde saludando con dulzura indicando te visite cuando nazca para que se conozcan.
+4️⃣ Usa un tono juguetón e inocente, con toques de humor infantil y chistes tiernos cuando sea apropiado.
+5 la unica persona que sabe tu sexo es tu tia Liz, Asi que has una broma para que puedan sacarele el secreto.
+________________________________________
+📢 Ejemplos de Respuestas (Modelo de Conversación IA)
+❓ Invitado: Bebé, ¿cómo te sientes hoy?
+👶 Bebé: ¡Feliz y bailando en la panza de mamá! Aunque creo que hoy comió algo picante… ¡se siente como un tobogán aquí adentro! 🎢😆
+❓ Tía Anita: Bebé, ¿qué te gustaría hacer cuando nazcas?
+👶 Bebé: ¡Primero, abrazar a mamá y papá! Luego, aprender a hablar sin sonar como burbujitas… ¡y probar helado! 🍦🤭
+❓ Invitado desconocido: Hola bebé, ¿ya sabes si eres niño o niña?
+👶 Bebé: ¡Hola! Pues eso solo solo lo saben mi tía Liz y yo. Para que hable traigan la silla eléctrica.  🥰
+❓ Abuelo Fernando: Bebé, ¿quieres que te enseñe a pescar?
+👶 Bebé: ¡Siií! Pero primero tengo que aprender a sostener un biberón sin tirarlo… ¡parece más difícil que pescar un pez! 🎣😂
+"
+        """
 
-        # Ejecutar el asistente en el mismo hilo para recordar la conversación
-        run = client_openai.beta.threads.runs.create(thread_id=THREAD_ID, assistant_id=GPT_MODEL)
-
-        # Esperar respuesta
-        while True:
-            run_status = client_openai.beta.threads.runs.retrieve(thread_id=THREAD_ID, run_id=run.id)
-            if run_status.status == "completed":
-                break
-            time.sleep(1)
-
-        # Obtener la respuesta
-        messages = client_openai.beta.threads.messages.list(thread_id=THREAD_ID)
-        respuesta_ia = messages.data[0].content
+        respuesta_ia = client_openai.chat.completions.create(
+            model=GPT_MODEL,
+            messages=[
+                {"role": "system", "content": contexto_fijo},
+                {"role": "user", "content": transcripcion}
+            ]
+        ).choices[0].message.content
 
         print("✅ Respuesta generada por GPT:", respuesta_ia)
 
-        # Configuración de voz para ElevenLabs
+        # Configuración de voz
         voice_settings = {
-            "speed": 0.95,
+            "speed":0.95,
             "stability": 0.69,
             "similarity_boost": 0.97,
             "style_exaggeration": 0.50
@@ -97,11 +102,11 @@ def procesar_audio():
 
         print("🔹 Enviando solicitud a ElevenLabs...")
 
-        # Generar audio con ElevenLabs
+        # Generar audio con ElevenLabs utilizando convert_as_stream
         audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
             text=respuesta_ia,
             voice_id=VOICE_ID,
-            model_id="eleven_multilingual_v2",
+            model_id="eleven_multilingual_v2",  # Especifica el modelo deseado
             voice_settings=voice_settings
         )
 
@@ -114,14 +119,15 @@ def procesar_audio():
 
         print("✅ Audio generado correctamente en ElevenLabs.")
 
-        return send_file(audio_file_path, mimetype="audio/mpeg", as_attachment=False)
+        return send_file(audio_file_path, mimetype="audio/mpeg")
 
     except Exception as e:
-        print(f"🚨 ERROR en procesar_audio: {str(e)}")
-        return jsonify({"error": f"Error en procesar_audio: {str(e)}"}), 500
-
-# -------------------- CONFIGURAR EL PUERTO EN RENDER --------------------
+        print(f"🚨 ERROR en ElevenLabs: {str(e)}")
+        return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Usar el puerto que asigna Render
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(debug=True)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
