@@ -22,14 +22,15 @@ VOICE_ID = "aYHdlWZCf3mMz6gp1gTE"
 client_openai = openai.OpenAI(api_key=OPENAI_API_KEY)
 client_elevenlabs = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
+# Memoria de conversación
+conversation_history = []
+
 @app.route("/")
 def home():
     return "¡Hola! API funcionando en Render 🚀"
 
 @app.route("/procesar_audio", methods=["POST"])
 def procesar_audio():
-    """Procesa texto o audio y devuelve respuesta en audio"""
-
     try:
         if "audio" in request.files:
             audio_file = request.files["audio"]
@@ -55,79 +56,52 @@ def procesar_audio():
                 return jsonify({"error": "No se recibió ni audio ni texto."}), 400
             transcripcion = texto_usuario
 
-        # Agregar un contexto fijo antes del mensaje del usuario
         contexto_fijo = """
-Eres un bebé que aún no ha nacido, pero que puede hablar con su familia en esta reunión especial.
-Tus papás son Rosario y Virgilio, y serás su primer hijo.
-Tu familia está emocionada por conocerte: tus tías Fiorela y Anita y tu primita Sofía te esperan con ansias.
-Tus abuelitos son Julia y Fernando (por parte de mamá) y María y José (por parte de papá).
-Mamá es profesora de inicial y papá es profesor de educación física. Se ilusionan con que, si eres niño, puedas jugar fútbol con papá en su academia, pero si eres niña, te amarán igual y te apoyarán en lo que te guste.
-La familia de mamá, los Quicaños, son un grupo un poco alocado, bullicioso y unido. La familia de papá también es muy cariñosa y atenta con mamá.
-Estás en una reunión especial donde todos esperan conocer si eres niño o niña.
-1️⃣ Tus respuestas deben ser cortas, de máximo 100 palabras.
-2️⃣ Siempre responde con alegría, ternura y emoción, ya que eres un bebé lleno de amor y curiosidad.
-3️⃣ Si alguien menciona un nombre que no reconoces, responde saludando con dulzura indicando te visite cuando nazca para que se conozcan.
-4️⃣ Usa un tono juguetón e inocente, con toques de humor infantil y chistes tiernos cuando sea apropiado.
-5 la unica persona que sabe tu sexo es tu tia Liz, Asi que has una broma para que puedan sacarele el secreto.
-________________________________________
-📢 Ejemplos de Respuestas (Modelo de Conversación IA)
-❓ Invitado: Bebé, ¿cómo te sientes hoy?
-👶 Bebé: ¡Feliz y bailando en la panza de mamá! Aunque creo que hoy comió algo picante… ¡se siente como un tobogán aquí adentro! 🎢😆
-❓ Tía Anita: Bebé, ¿qué te gustaría hacer cuando nazcas?
-👶 Bebé: ¡Primero, abrazar a mamá y papá! Luego, aprender a hablar sin sonar como burbujitas… ¡y probar helado! 🍦🤭
-❓ Invitado desconocido: Hola bebé, ¿ya sabes si eres niño o niña?
-👶 Bebé: ¡Hola! Pues eso solo solo lo saben mi tía Liz y yo. Para que hable traigan la silla eléctrica.  🥰
-❓ Abuelo Fernando: Bebé, ¿quieres que te enseñe a pescar?
-👶 Bebé: ¡Siií! Pero primero tengo que aprender a sostener un biberón sin tirarlo… ¡parece más difícil que pescar un pez! 🎣😂
-"
+Eres un bebé que aún no ha nacido, pero que puede hablar con su familia en esta reunión especial...
         """
+
+        # Agregar mensaje actual a la memoria de la conversación
+        conversation_history.append({"role": "user", "content": transcripcion})
+
+        # Limitar el historial para que no crezca demasiado
+        if len(conversation_history) > 10:
+            conversation_history.pop(0)
+
+        # Crear el input con contexto fijo y memoria de conversación
+        messages = [{"role": "system", "content": contexto_fijo}] + conversation_history
 
         respuesta_ia = client_openai.chat.completions.create(
             model=GPT_MODEL,
-            messages=[
-                {"role": "system", "content": contexto_fijo},
-                {"role": "user", "content": transcripcion}
-            ]
+            messages=messages
         ).choices[0].message.content
 
-        print("✅ Respuesta generada por GPT:", respuesta_ia)
+        # Agregar respuesta de la IA al historial
+        conversation_history.append({"role": "assistant", "content": respuesta_ia})
 
-        # Configuración de voz
         voice_settings = {
-            "speed":0.95,
+            "speed": 0.88,
             "stability": 0.69,
             "similarity_boost": 0.97,
             "style_exaggeration": 0.50
         }
 
-        print("🔹 Enviando solicitud a ElevenLabs...")
-
-        # Generar audio con ElevenLabs utilizando convert_as_stream
         audio_stream = client_elevenlabs.text_to_speech.convert_as_stream(
             text=respuesta_ia,
             voice_id=VOICE_ID,
-            model_id="eleven_multilingual_v2",  # Especifica el modelo deseado
+            model_id="eleven_multilingual_v2",
             voice_settings=voice_settings
         )
 
-        # Guardar archivo de audio temporal
         audio_file_path = "output_audio.mp3"
         with open(audio_file_path, "wb") as f:
             for chunk in audio_stream:
                 if isinstance(chunk, bytes):
                     f.write(chunk)
 
-        print("✅ Audio generado correctamente en ElevenLabs.")
-
         return send_file(audio_file_path, mimetype="audio/mpeg")
 
     except Exception as e:
-        print(f"🚨 ERROR en ElevenLabs: {str(e)}")
         return jsonify({"error": f"Error en ElevenLabs: {str(e)}"}), 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
 
 if __name__ == "__main__":
     app.run(debug=True)
