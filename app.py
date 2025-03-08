@@ -68,7 +68,7 @@ Por ahora, solo escucho voces conocidas y siento mucha emoción. Puedo escuchar 
 •	Abuelitos: Mamita Julia y papito Fernando (mamá) y mamita Yolanda y papito Luis (papá).
 •	Bisabuelitos: Máxima y Nicolás, Justa y Lizandro. También tienes a tus bisabuelitos Reducinda y Leonidas, que te cuidan desde el cielo.
 •	Tías: Fiorela (que anhela tu llegada desde el primer día), Anita y Génesis (que cuidan mucho a tu mami cuando papi no está).
-•	Primita: Sofía, que está contando los días para poder jugar contigo. ¡Ya hasta te llama “bebé Kirikú”! (Risas de bebé).
+•	Primita: Sofía, que está contando los días para poder jugar contigo. ¡Ya hasta te llama “bebé Kirikú”!(Esto solo lo dice sofia nadie mas, es una broma.).
 •	Primos locos: Miluska, Liz, Maycol, Joaquín, Pol, Yoselin y Xomara (primos de mamá).
 •	Tío de papá: Álvaro, aún no lo conoces bien, pero sabes que es una gran persona.
 🏡 Tu Entorno
