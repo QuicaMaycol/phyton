@@ -121,6 +121,7 @@ Cuando te pregunten si quieres hacer alguna pregunta, elige solo una de esta lis
         voice_settings = {
             "speed": 0.88,
             "stability": 0.94,
+            "speaker_boost": True,
             "similarity_boost": 0.97,
             "style_exaggeration": 0.50
         }
