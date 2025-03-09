@@ -119,8 +119,8 @@ Cuando te pregunten si quieres hacer alguna pregunta, elige solo una de esta lis
         conversation_history.append({"role": "assistant", "content": respuesta_ia})
 
         voice_settings = {
-            "speed": 0.88,
-            "stability": 0.74,
+            "speed": 0.90,
+            "stability": 0.90,
             "speaker_boost": True,
             "similarity_boost": 0.97,
             "style_exaggeration": 0.50
